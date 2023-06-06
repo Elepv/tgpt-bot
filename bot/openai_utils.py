@@ -224,13 +224,22 @@ async def get_short_summary(text):
     )
     summary = completions.choices[0].text.strip()
     return summary
-    
-    # short_summary_chatgpt_instance = ChatGPT(model="text-davinci-003")
-    # if config.enable_message_streaming:
-    #     gen = short_summary_chatgpt_instance.send_message_stream(prompt, dialog_messages=dialog_messages, chat_mode=chat_mode)
-    # else:
-    #     await short_summary_chatgpt_instance.send_message(
-    #         prompt,
-    #         dialog_messages=dialog_messages,
-    #         chat_mode=chat_mode
-    #     )
+
+async def get_summary(text):
+    prompt = config.chat_modes["voice_summary"]["prompt_start"]
+    # 加上语音转的文字，生成新的prompt
+    prompt += "/n---"
+    prompt += text
+    prompt += "/n---"
+
+    model = "text-davinci-003"
+    completions = openai.Completion.create(
+        engine=model,
+        prompt=prompt,
+        max_tokens=1024,
+        n=1,
+        stop=None,
+        temperature=0.3,
+    )
+    summary = completions.choices[0].text.strip()
+    return summary

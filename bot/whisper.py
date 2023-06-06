@@ -1,29 +1,15 @@
-import telegram
-from telegram import (
-    Update,
-    # User
-    # InlineKeyboardButton,
-    # InlineKeyboardMarkup,
-    # BotCommand
-)
-from telegram.ext import (
-    Application,
-    ApplicationBuilder,
-    CallbackContext,
-    CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,
-    AIORateLimiter,
-    filters
-)
+from telegram import Update
+from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 
 from pathlib import Path
 import tempfile
-
 import pydub
-import config
+
 import openai_utils
+
+import logging
+logger = logging.getLogger(__name__)
 
 async def voice_to_speech(voice_file_id: str, context) -> str:
     # 临时文件存储录音文件
@@ -51,27 +37,58 @@ async def voice_to_speech(voice_file_id: str, context) -> str:
 # 处理语音信息
 async def voice_message_handle(update: Update, context: CallbackContext):
 
-    voice = update.message.voice
+    try:
+        chat_id = context.chat_id
+        bot = context.bot
 
-    transcribed_text = await voice_to_speech(voice.file_id, context)
+        # send placeholder message to user
+        placeholder_message = await bot.send_message(chat_id=chat_id, text="...")
 
-    if len(transcribed_text) <= 15:
-        text = f"🎤: <i>{transcribed_text}</i>"
-    else:
-        # 如果消息长度大于15，则使用ChatGPT获取一个50个字以内的总结
-        # await message_handle(update, context, message=transcribed_text)
-        short_summary = await openai_utils.get_short_summary(transcribed_text)
-        text = f"🎤 摘要: <i>{short_summary}</i>"
-    
-    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+        # send typing action
+        await bot.send_chat_action(chat_id=chat_id, action="typing")
+
+        voice = update.message.voice
+
+        transcribed_text = await voice_to_speech(voice.file_id, context)
+
+        if len(transcribed_text) <= 15:
+            text = f"🎤: <i>{transcribed_text}</i>"
+        else:
+            # 如果消息长度大于15，则使用ChatGPT获取一个50个字以内的总结
+            # await message_handle(update, context, message=transcribed_text)
+            short_summary = await openai_utils.get_short_summary(transcribed_text)
+            text = f"🎤 摘要: <i>{short_summary}</i>"
+        
+        # await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+        parse_mode = ParseMode.HTML
+        await context.bot.edit_message_text(text, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id, parse_mode=parse_mode)
+
+
+    except Exception as e:
+        error_text = f"Something went wrong during completion. Reason: {e}"
+        logger.error(error_text)
+        await bot.send_message(chat_id=chat_id, text=error_text)
 
 # 语音信息总结
 async def voice_summary_handle(update: Update, context: CallbackContext):
 
-    voice = update.message.voice
+    try:
+        bot = context.bot
+        chat_id = context.chat_id
+
+        placeholder_message = await bot.send_message(chat_id=chat_id, text="...")
+        # send typing action
+        await bot.send_chat_action(chat_id=chat_id, action="typing")
+   
+        voice = update.message.voice
+        
+        transcribed_text = await voice_to_speech(voice.file_id, context)
+        text = f"🎤: <i>{transcribed_text}</i>"
+        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+        summary = await openai_utils.get_summary(text)
+        await update.message.reply_text(summary, parse_mode=ParseMode.HTML)
     
-    transcribed_text = await voice_to_speech(voice.file_id, context)
-    text = f"🎤: <i>{transcribed_text}</i>"
-    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
-    summary = await openai_utils.get_summary(text)
-    await update.message.reply_text(summary, parse_mode=ParseMode.HTML) 
+    except Exception as e:
+        error_text = f"Something went wrong during completion. Reason: {e}"
+        logger.error(error_text)
+        await context.bot.send_message(chat_id=chat_id, text=error_text)

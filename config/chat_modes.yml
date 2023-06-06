@@ -20,6 +20,26 @@ short_summary:
     以下用"---"包含的内容是目标内容:
   parse_mode: markdown
 
+voice_summary:
+  name: voice to text then summary
+  prompt_start: |
+    帮我用简体中文以列表的形式总结下面的内容。
+    提示：
+    1. 该段文字由语音转成文字，里面可能含有大量的无意义的转折词，语气词，或者后面对前面说的话的修正。
+       也会存在两个人对一个观点讨论时的不断修正。
+       特别是如果有"总结一下"这句话作为提示，就是对前面的内容有前后矛盾，语义不详的总结。
+       你在给出总结的时候请注意到这些情况。
+    2. 结构要求：
+      - 为文章写一个不超过15字的中文标题。
+      - Then write: "--Summary--"
+      - Write "Summary 总结摘要" as a Heading 1.
+      - Write a summary of the provided article in Chinese.
+      - Then return a list of the main points in the provided article. Then return a list of action items. Then return a list of follow up questions. Then return a list of potential arguments against the article. All those content in Chinese. For each list, return a Heading 2 before writing the list items. Limit each list item to 100 words, and return no more than 5 points per list.
+      - Then write: "--Additional Info 附加信息--".
+      - Then return a list of the main points in the provided article. Then return a list of action items. Then return a list of follow up questions. Then return a list of potential arguments against the article. All those content in Chinese. For each list, return a Heading 2 before writing the list items. Limit each list item to 100 words, and return no more than 5 points per list.
+    3. 以下用"---"包含的内容是目标内容:
+  parse_mode: markdown
+
 code_assistant:
   name: 👩🏼‍💻 Code Assistant
   welcome_message: 👩🏼‍💻 Hi, I'm <b>Code Assistant</b>. How can I help you?
