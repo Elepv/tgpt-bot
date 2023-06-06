@@ -25,16 +25,14 @@ import pydub
 import config
 import openai_utils
 
-async def voice_to_speech(update: Update, context: CallbackContext):
-    voice = update.message.voice
-
+async def voice_to_speech(voice_file_id: str, context) -> str:
     # 临时文件存储录音文件
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
         voice_ogg_path = tmp_dir / "group_voice.ogg"
 
         # download 下载语音文件
-        voice_file = await context.bot.get_file(voice.file_id)
+        voice_file = await context.bot.get_file(voice_file_id)
         await voice_file.download_to_drive(voice_ogg_path)
 
         # convert to mp3
@@ -47,33 +45,15 @@ async def voice_to_speech(update: Update, context: CallbackContext):
 
             if transcribed_text is None:
                  transcribed_text = "" 
+
+        return transcribed_text
 
 # 处理语音信息
 async def voice_message_handle(update: Update, context: CallbackContext):
 
     voice = update.message.voice
 
-    # 临时文件存储录音文件
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        tmp_dir = Path(tmp_dir)
-        voice_ogg_path = tmp_dir / "group_voice.ogg"
-
-        # download 下载语音文件
-        voice_file = await context.bot.get_file(voice.file_id)
-        await voice_file.download_to_drive(voice_ogg_path)
-
-        # convert to mp3
-        voice_mp3_path = tmp_dir / "gourp_voice.mp3"
-        pydub.AudioSegment.from_file(voice_ogg_path).export(voice_mp3_path, format="mp3")
-
-        # transcribe
-        with open(voice_mp3_path, "rb") as f:
-            transcribed_text = await openai_utils.transcribe_audio(f)
-
-            if transcribed_text is None:
-                 transcribed_text = "" 
-
-    # transcribed_text = await voice_to_speech(update, context)
+    transcribed_text = await voice_to_speech(voice.file_id, context)
 
     if len(transcribed_text) <= 15:
         text = f"🎤: <i>{transcribed_text}</i>"
@@ -87,8 +67,10 @@ async def voice_message_handle(update: Update, context: CallbackContext):
 
 # 语音信息总结
 async def voice_summary_handle(update: Update, context: CallbackContext):
+
+    voice = update.message.voice
     
-    transcribed_text = await voice_to_speech(update, context)
+    transcribed_text = await voice_to_speech(voice.file_id, context)
     text = f"🎤: <i>{transcribed_text}</i>"
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
     summary = await openai_utils.get_summary(text)
