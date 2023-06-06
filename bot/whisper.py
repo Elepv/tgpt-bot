@@ -25,8 +25,7 @@ import pydub
 import config
 import openai_utils
 
-# 处理语音信息
-async def voice_message_handle(update: Update, context: CallbackContext):
+async def voice_to_speech(update: Update, context: CallbackContext):
     voice = update.message.voice
 
     # 临时文件存储录音文件
@@ -47,15 +46,50 @@ async def voice_message_handle(update: Update, context: CallbackContext):
             transcribed_text = await openai_utils.transcribe_audio(f)
 
             if transcribed_text is None:
-                 transcribed_text = ""
+                 transcribed_text = "" 
 
-        # 发送到群组
-        if len(transcribed_text) <= 15:
-            text = f"🎤: <i>{transcribed_text}</i>"
-        else:
-            # 如果消息长度大于15，则使用ChatGPT获取一个12个字以内的总结
-            # await message_handle(update, context, message=transcribed_text)
-            short_summary = await openai_utils.get_short_summary(transcribed_text)
-            text = f"🎤 摘要: <i>{short_summary}</i>"
-        
-        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+# 处理语音信息
+async def voice_message_handle(update: Update, context: CallbackContext):
+
+    voice = update.message.voice
+
+    # 临时文件存储录音文件
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = Path(tmp_dir)
+        voice_ogg_path = tmp_dir / "group_voice.ogg"
+
+        # download 下载语音文件
+        voice_file = await context.bot.get_file(voice.file_id)
+        await voice_file.download_to_drive(voice_ogg_path)
+
+        # convert to mp3
+        voice_mp3_path = tmp_dir / "gourp_voice.mp3"
+        pydub.AudioSegment.from_file(voice_ogg_path).export(voice_mp3_path, format="mp3")
+
+        # transcribe
+        with open(voice_mp3_path, "rb") as f:
+            transcribed_text = await openai_utils.transcribe_audio(f)
+
+            if transcribed_text is None:
+                 transcribed_text = "" 
+
+    # transcribed_text = await voice_to_speech(update, context)
+
+    if len(transcribed_text) <= 15:
+        text = f"🎤: <i>{transcribed_text}</i>"
+    else:
+        # 如果消息长度大于15，则使用ChatGPT获取一个50个字以内的总结
+        # await message_handle(update, context, message=transcribed_text)
+        short_summary = await openai_utils.get_short_summary(transcribed_text)
+        text = f"🎤 摘要: <i>{short_summary}</i>"
+    
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+
+# 语音信息总结
+async def voice_summary_handle(update: Update, context: CallbackContext):
+    
+    transcribed_text = await voice_to_speech(update, context)
+    text = f"🎤: <i>{transcribed_text}</i>"
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+    summary = await openai_utils.get_summary(text)
+    await update.message.reply_text(summary, parse_mode=ParseMode.HTML) 

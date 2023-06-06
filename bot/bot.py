@@ -217,6 +217,12 @@ def run_bot() -> None:
     application.add_handler(CommandHandler("help", help_handle, filters=user_filter))
     application.add_handler(CommandHandler("help_group_chat", help_group_chat_handle, filters=user_filter))
 
+    # add handlers
+    # application.add_handler(MessageHandler(filters.VOICE & user_filter & filters.ChatType.GROUP, whisper.voice_message_handle))
+    application.add_handler(MessageHandler(filters.VOICE & user_filter, whisper.voice_message_handle))
+    application.add_handler(MessageHandler(filters.VOICE & user_filter & filters.Regex(r"^/summary"), whisper.voice_summary_handle))
+
+
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & user_filter, bot_handlers.message_handle))
     application.add_handler(CommandHandler("retry", bot_handlers.retry_handle, filters=user_filter))
     application.add_handler(CommandHandler("new", bot_handlers.new_dialog_handle, filters=user_filter))
@@ -235,9 +241,6 @@ def run_bot() -> None:
 
     application.add_error_handler(error_handle)
 
-    # add handlers
-    application.add_handler(MessageHandler(filters.VOICE & user_filter, whisper.voice_message_handle))
-    # application.add_handler(MessageHandler(filters.VOICE & user_filter & filters.ChatType.GROUP, whisper.voice_message_handle))
 
     # start the bot
     application.run_polling()
