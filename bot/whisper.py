@@ -10,6 +10,8 @@ import openai_utils
 
 import logging
 logger = logging.getLogger(__name__)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
 
 async def voice_to_speech(voice_file_id: str, context) -> str:
     # 临时文件存储录音文件
@@ -38,7 +40,7 @@ async def voice_to_speech(voice_file_id: str, context) -> str:
 async def voice_message_handle(update: Update, context: CallbackContext):
 
     try:
-        chat_id = context.chat_id
+        chat_id = update.effective_chat.id
         bot = context.bot
 
         # send placeholder message to user
@@ -69,19 +71,30 @@ async def voice_message_handle(update: Update, context: CallbackContext):
         logger.error(error_text)
         await bot.send_message(chat_id=chat_id, text=error_text)
 
+# 处理回复消息
+async def handle_voice_reply(update: Update, context: CallbackContext):
+    message = update.message
+    voice = None
+    if message.reply_to_message and message.reply_to_message.voice:
+        voice = message.reply_to_message.voice
+    elif message.voice:
+        voice = message.voice
+    else:
+        raise ValueError("No voice message found.")
+
+    await voice_summary_handle(update, context, voice)
+
 # 语音信息总结
-async def voice_summary_handle(update: Update, context: CallbackContext):
+async def voice_summary_handle(update: Update, context: CallbackContext, voice):
 
     try:
         bot = context.bot
-        chat_id = context.chat_id
+        chat_id = update.effective_chat.id
 
         placeholder_message = await bot.send_message(chat_id=chat_id, text="...")
         # send typing action
         await bot.send_chat_action(chat_id=chat_id, action="typing")
    
-        voice = update.message.voice
-        
         transcribed_text = await voice_to_speech(voice.file_id, context)
         text = f"🎤: <i>{transcribed_text}</i>"
         await update.message.reply_text(text, parse_mode=ParseMode.HTML)
