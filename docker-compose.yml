@@ -18,6 +18,9 @@ services:
     build:
       context: "."
       dockerfile: Dockerfile
+    environment:
+      - http_proxy=socks5://10.0.9.24:7890
+      - https_proxy=socks5://10.0.9.24:7890
     depends_on:
       - mongo
 

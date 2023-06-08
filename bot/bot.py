@@ -219,9 +219,10 @@ def run_bot() -> None:
 
     # add handlers
     # application.add_handler(MessageHandler(filters.VOICE & user_filter & filters.ChatType.GROUP, whisper.voice_message_handle))
+    application.add_handler(MessageHandler(filters.REPLY & filters.Regex(r"^/summary") & user_filter, whisper.handle_voice_reply))
     application.add_handler(MessageHandler(filters.VOICE & user_filter, whisper.voice_message_handle))
-    application.add_handler(MessageHandler(filters.VOICE & user_filter & filters.Regex(r"^/summary"), whisper.voice_summary_handle))
 
+    logging.info("summary func has registered...")
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & user_filter, bot_handlers.message_handle))
     application.add_handler(CommandHandler("retry", bot_handlers.retry_handle, filters=user_filter))
