@@ -182,7 +182,9 @@ async def error_handle(update: Update, context: CallbackContext) -> None:
                 # answer has invalid characters, so we send it without parse_mode
                 await context.bot.send_message(update.effective_chat.id, message_chunk)
     except:
-        await context.bot.send_message(update.effective_chat.id, "Some error in error handler")
+        # fix bug: AttributeError: 'NoneType' object has no attribute 'effective_chat'
+        if update.callback_query.message:
+            await context.bot.send_message(update.effective_chat.id, "Some error in error handler")
 
 async def post_init(application: Application):
     await application.bot.set_my_commands([
@@ -219,10 +221,10 @@ def run_bot() -> None:
 
     # add handlers
     # application.add_handler(MessageHandler(filters.VOICE & user_filter & filters.ChatType.GROUP, whisper.voice_message_handle))
-    application.add_handler(MessageHandler(filters.REPLY & filters.Regex(r"^/summary") & user_filter, whisper.handle_voice_reply))
-    application.add_handler(MessageHandler(filters.VOICE & user_filter, whisper.voice_message_handle))
+    application.add_handler(MessageHandler(filters.REPLY & filters.Regex(r"^/summary") & user_filter, whisper.voice_summary_handle))
+    application.add_handler(MessageHandler(filters.VOICE & user_filter, whisper.handle_voice_message_to_short_summary))
 
-    logging.info("summary func has registered...")
+    application.add_handler(MessageHandler(filters.AUDIO, whisper.voice_summary_handle))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & user_filter, bot_handlers.message_handle))
     application.add_handler(CommandHandler("retry", bot_handlers.retry_handle, filters=user_filter))
@@ -242,6 +244,7 @@ def run_bot() -> None:
 
     application.add_error_handler(error_handle)
 
+    logging.info("summary func has registered...")
 
     # start the bot
     application.run_polling()

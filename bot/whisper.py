@@ -38,7 +38,7 @@ async def voice_to_speech(voice_file_id: str, context) -> str:
         return transcribed_text
 
 # 处理语音信息
-async def voice_message_handle(update: Update, context: CallbackContext):
+async def handle_voice_message_to_short_summary(update: Update, context: CallbackContext):
 
     try:
         chat_id = update.effective_chat.id
@@ -68,21 +68,25 @@ async def voice_message_handle(update: Update, context: CallbackContext):
         logger.error(error_text)
         await bot.send_message(chat_id=chat_id, text=error_text)
 
-# 处理回复消息
-async def handle_voice_reply(update: Update, context: CallbackContext):
-    message = update.message
-    voice = None
-    if message.reply_to_message and message.reply_to_message.voice:
-        voice = message.reply_to_message.voice
-    elif message.voice:
-        voice = message.voice
-    else:
-        raise ValueError("No voice message found.")
-
-    await voice_summary_handle(update, context, voice)
 
 # 语音信息总结
-async def voice_summary_handle(update: Update, context: CallbackContext, voice):
+async def voice_summary_handle(update: Update, context: CallbackContext):
+
+    logging.info("voice_summary_handle runs")
+
+    message = update.message
+    voice = None
+
+    if message.reply_to_message and message.reply_to_message.voice:
+        file_id = message.reply_to_message.voice.file_id
+    elif message.voice:
+        file_id = message.voice.file_id
+    elif message.audio:
+        file_id = message.audio.file_id 
+        logging.info("handle a mp3 file...")
+    else:
+        raise ValueError("No voice message found.")
+    
 
     try:
         bot = context.bot
@@ -92,13 +96,21 @@ async def voice_summary_handle(update: Update, context: CallbackContext, voice):
         # send typing action
         await bot.send_chat_action(chat_id=chat_id, action="typing")
    
-        transcribed_text = await voice_to_speech(voice.file_id, context)
-        text = f"🎤: <i>{transcribed_text}</i>"
-        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
-        summary = await poe_utils.get_summary(text)
-        await update.message.reply_text(summary, parse_mode=ParseMode.HTML)
+        transcribed_text = await voice_to_speech(file_id, context)
+        text = f"🎤 语音信息内容:\n <i>{transcribed_text}</i>"
+        await bot.edit_message_text(text, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id, parse_mode=ParseMode.HTML)
+
+        placeholder_message = await bot.send_message(chat_id=chat_id, text="In summary, please wait...")
+        # send typing action
+        await bot.send_chat_action(chat_id=chat_id, action="typing")
+
+
+        summary = await poe_utils.get_summary(transcribed_text)
+        await bot.edit_message_text(summary, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id, parse_mode=ParseMode.HTML)
     
     except Exception as e:
         error_text = f"Something went wrong during completion. Reason: {e}"
         logger.error(error_text)
         await context.bot.send_message(chat_id=chat_id, text=error_text)
+
+# await context.bot.edit_message_text(answer, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id, parse_mode=parse_mode)
