@@ -7,6 +7,7 @@ import tempfile
 import pydub
 
 import openai_utils
+import poe_utils
 
 import logging
 logger = logging.getLogger(__name__)
@@ -53,13 +54,9 @@ async def voice_message_handle(update: Update, context: CallbackContext):
 
         transcribed_text = await voice_to_speech(voice.file_id, context)
 
-        if len(transcribed_text) <= 15:
-            text = f"🎤: <i>{transcribed_text}</i>"
-        else:
-            # 如果消息长度大于15，则使用ChatGPT获取一个50个字以内的总结
-            # await message_handle(update, context, message=transcribed_text)
-            short_summary = await openai_utils.get_short_summary(transcribed_text)
-            text = f"🎤 摘要: <i>{short_summary}</i>"
+        # await message_handle(update, context, message=transcribed_text)
+        short_summary = await poe_utils.get_short_summary(transcribed_text)
+        text = f"🎤 摘要: <i>{short_summary}</i>"
         
         # await update.message.reply_text(text, parse_mode=ParseMode.HTML)
         parse_mode = ParseMode.HTML
@@ -98,7 +95,7 @@ async def voice_summary_handle(update: Update, context: CallbackContext, voice):
         transcribed_text = await voice_to_speech(voice.file_id, context)
         text = f"🎤: <i>{transcribed_text}</i>"
         await update.message.reply_text(text, parse_mode=ParseMode.HTML)
-        summary = await openai_utils.get_summary(text)
+        summary = await poe_utils.get_summary(text)
         await update.message.reply_text(summary, parse_mode=ParseMode.HTML)
     
     except Exception as e:

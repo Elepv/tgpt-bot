@@ -7,3 +7,4 @@ python-dotenv==0.21.0
 pydub==0.25.1
 pysocks
 python-telegram-bot[socks]
+poe-api
