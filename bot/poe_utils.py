@@ -26,10 +26,14 @@ async def get_short_summary(text):
 
 async def get_summary(text):
     message = text
+    
+    logging.info("now sending to poe for summary")
 
     for chunk in client.send_message("voicesummary", message, with_chat_break=True,timeout = 180):
       pass # 不逐句打印
       # print(chunk["text_new"], end="", flush=True)  # 逐句打印
     summary = chunk["text"]  # 不逐句打印
+
+    logging.info("get summary. now return summary.")
     
     return summary

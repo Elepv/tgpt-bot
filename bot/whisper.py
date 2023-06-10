@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 
+import asyncio
 from pathlib import Path
 import tempfile
 import pydub
@@ -64,7 +65,7 @@ async def handle_voice_message_to_short_summary(update: Update, context: Callbac
 
 
     except Exception as e:
-        error_text = f"Something went wrong during completion. Reason: {e}"
+        error_text = f"在完成的过程中出了点问题。 Reason: {e}"
         logger.error(error_text)
         await bot.send_message(chat_id=chat_id, text=error_text)
 
@@ -83,7 +84,6 @@ async def voice_summary_handle(update: Update, context: CallbackContext):
         file_id = message.voice.file_id
     elif message.audio:
         file_id = message.audio.file_id 
-        logging.info("handle a mp3 file...")
     else:
         raise ValueError("No voice message found.")
     
@@ -92,6 +92,7 @@ async def voice_summary_handle(update: Update, context: CallbackContext):
         bot = context.bot
         chat_id = update.effective_chat.id
 
+        # 发送语音信息内容
         placeholder_message = await bot.send_message(chat_id=chat_id, text="...")
         # send typing action
         await bot.send_chat_action(chat_id=chat_id, action="typing")
@@ -100,16 +101,17 @@ async def voice_summary_handle(update: Update, context: CallbackContext):
         text = f"🎤 语音信息内容:\n <i>{transcribed_text}</i>"
         await bot.edit_message_text(text, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id, parse_mode=ParseMode.HTML)
 
-        placeholder_message = await bot.send_message(chat_id=chat_id, text="In summary, please wait...")
+        # 发送总结内容
+        placeholder_message = await bot.send_message(chat_id=chat_id, text="In summary, please wait more than 3 minutes...")
         # send typing action
         await bot.send_chat_action(chat_id=chat_id, action="typing")
 
-
-        summary = await poe_utils.get_summary(transcribed_text)
+        # summary = await poe_utils.get_summary(transcribed_text)
+        summary = await asyncio.wait_for(poe_utils.get_summary(transcribed_text), timeout=180)
         await bot.edit_message_text(summary, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id, parse_mode=ParseMode.HTML)
     
     except Exception as e:
-        error_text = f"Something went wrong during completion. Reason: {e}"
+        error_text = f"在完成的过程中出了点问题。 Reason: {e}"
         logger.error(error_text)
         await context.bot.send_message(chat_id=chat_id, text=error_text)
 
