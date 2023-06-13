@@ -42,18 +42,40 @@ async def voice_to_speech(voice_file_id: str, context) -> str:
 
         return transcribed_text
 
-# 处理语音信息
-async def handle_voice_message_to_short_summary(update: Update, context: CallbackContext):
+async def send_message_to_tg(update: Update, context: CallbackContext, send_message_content, hint_text="..."):
 
     try:
         chat_id = update.effective_chat.id
         bot = context.bot
 
-        # send placeholder message to user
-        placeholder_message = await bot.send_message(chat_id=chat_id, text="...")
+    # send placeholder message to user
+        placeholder_message = await bot.send_message(chat_id=chat_id, text=hint_text)
 
         # send typing action
-        await bot.send_chat_action(chat_id=chat_id, action="typing")
+        await bot.send_chat_action(chat_id=chat_id, action="typing") 
+
+        # await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+        parse_mode = ParseMode.HTML
+        await context.bot.edit_message_text(send_message_content, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id, parse_mode=parse_mode)
+
+    except Exception as e:
+        error_text = f"在完成的过程中出了点问题。 Reason: {e}"
+        logger.error(error_text)
+        await bot.send_message(chat_id=chat_id, text=error_text)
+
+
+# 处理语音信息
+async def handle_voice_message_to_short_summary(update: Update, context: CallbackContext):
+
+    # try:
+        # chat_id = update.effective_chat.id
+        # bot = context.bot
+
+        # # send placeholder message to user
+        # placeholder_message = await bot.send_message(chat_id=chat_id, text="...")
+
+        # # send typing action
+        # await bot.send_chat_action(chat_id=chat_id, action="typing")
 
         voice = update.message.voice
 
@@ -63,9 +85,11 @@ async def handle_voice_message_to_short_summary(update: Update, context: Callbac
         short_summary = await poe_utils.get_short_summary(transcribed_text)
         text = f"🎤 摘要: <i>{short_summary}</i>"
         
-        # await update.message.reply_text(text, parse_mode=ParseMode.HTML)
-        parse_mode = ParseMode.HTML
-        await context.bot.edit_message_text(text, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id, parse_mode=parse_mode)
+        # # await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+        # parse_mode = ParseMode.HTML
+        # await context.bot.edit_message_text(text, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id, parse_mode=parse_mode)
+
+        send_message_to_tg(update, context, send_message_content=short_summary)
 
         # notion recorder
         user_id = "28236a9a-da36-4486-8a7f-535350791102" 
@@ -73,10 +97,10 @@ async def handle_voice_message_to_short_summary(update: Update, context: Callbac
         await notion_client.write_row(speak_time=speak_time, abstract=short_summary)
 
 
-    except Exception as e:
-        error_text = f"在完成的过程中出了点问题。 Reason: {e}"
-        logger.error(error_text)
-        await bot.send_message(chat_id=chat_id, text=error_text)
+    # except Exception as e:
+    #     error_text = f"在完成的过程中出了点问题。 Reason: {e}"
+    #     logger.error(error_text)
+    #     await bot.send_message(chat_id=chat_id, text=error_text)
 
 
 # 语音信息总结
