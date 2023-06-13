@@ -8,3 +8,4 @@ pydub==0.25.1
 pysocks
 python-telegram-bot[socks]
 poe-api
+notion-client

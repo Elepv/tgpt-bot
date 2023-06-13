@@ -9,10 +9,14 @@ import pydub
 
 import openai_utils
 import poe_utils
+import notion
+import utils
 
 import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+notion_client = notion.NotionClient()
 
 
 async def voice_to_speech(voice_file_id: str, context) -> str:
@@ -62,6 +66,11 @@ async def handle_voice_message_to_short_summary(update: Update, context: Callbac
         # await update.message.reply_text(text, parse_mode=ParseMode.HTML)
         parse_mode = ParseMode.HTML
         await context.bot.edit_message_text(text, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id, parse_mode=parse_mode)
+
+        # notion recorder
+        user_id = "28236a9a-da36-4486-8a7f-535350791102" 
+        speak_time = utils.get_time_now()
+        await notion_client.write_row(speak_time=speak_time, abstract=short_summary)
 
 
     except Exception as e:
